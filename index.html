@@ -1,0 +1,596 @@
+<title>Adera Academy</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Nunito+Sans:wght@400;600;700&display=swap">
+<style>
+/* Layout: Lern-App mit fester Fortschrittsleiste oben; Hub als Kachelraster, Lektionen als einspaltige Karten, Test eine Frage pro Bildschirm. */
+:root{
+  --bg:#eef4f4; --surface:#ffffff; --ink:#12292c; --muted:#567175; --line:#d3e1e2;
+  --brand:#0b5f66; --brand-ink:#ffffff; --tint:#dcefef; --accent:#f2c230; --accent-ink:#2a2200;
+  --good:#1b8248; --good-bg:#e0f3e8; --bad:#c4312a; --bad-bg:#fbe5e3; --warn-bg:#fff4cf;
+  --tile-s:48%; --tile-l:88%; --shadow:0 1px 2px rgba(10,50,55,.08),0 6px 18px rgba(10,50,55,.06);
+  --f-display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --f-body:"Nunito Sans","Segoe UI",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0c1a1c; --surface:#132628; --ink:#e5f0f0; --muted:#93b0b3; --line:#244044;
+  --brand:#45b8c1; --brand-ink:#04191b; --tint:#1b3b3e; --accent:#f2c230; --accent-ink:#2a2200;
+  --good:#52c783; --good-bg:#16372a; --bad:#ff7d73; --bad-bg:#3d1f1d; --warn-bg:#3a3213;
+  --tile-s:30%; --tile-l:24%; --shadow:none; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0c1a1c; --surface:#132628; --ink:#e5f0f0; --muted:#93b0b3; --line:#244044;
+  --brand:#45b8c1; --brand-ink:#04191b; --tint:#1b3b3e; --accent:#f2c230; --accent-ink:#2a2200;
+  --good:#52c783; --good-bg:#16372a; --bad:#ff7d73; --bad-bg:#3d1f1d; --warn-bg:#3a3213;
+  --tile-s:30%; --tile-l:24%; --shadow:none; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 var(--f-body);margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--surface);z-index:30}
+h1,h2,h3{font-family:var(--f-display);line-height:1.15;margin:0;text-wrap:balance}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1040px;margin:0 auto;padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px))}
+
+/* Kopfleiste mit Fortschritt */
+#top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+#top .wrap{padding-block:10px 12px;display:grid;gap:8px}
+.top-row{display:flex;align-items:center;gap:12px;min-width:0}
+.brand{font:700 1.05rem var(--f-display);display:flex;align-items:center;gap:8px;white-space:nowrap}
+.brand i{font-style:normal;display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:var(--brand);color:var(--brand-ink);font-size:1rem}
+#crumb{flex:1;min-width:0;text-align:right;font-size:.85rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#back{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:5px 11px;font-size:.88rem;font-weight:700}
+.track{height:12px;border-radius:99px;background:var(--tint);overflow:hidden}
+.fill{height:100%;width:0;background:linear-gradient(90deg,var(--brand),var(--accent));border-radius:99px;transition:width .45s ease}
+.top-meta{display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted);font-weight:600}
+
+main{padding-block:22px 56px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:2px solid var(--brand);background:var(--brand);color:var(--brand-ink);border-radius:12px;padding:11px 20px;font-weight:700;min-height:46px}
+.btn.alt{background:transparent;color:var(--brand)}
+.btn.yellow{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.row{display:flex;flex-wrap:wrap;gap:10px}
+.tile{display:grid;place-items:center;border-radius:16px;background:hsl(var(--h,185) var(--tile-s) var(--tile-l));font-size:1.9rem;width:56px;height:56px;flex:none}
+
+/* Hub */
+.hero{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center;padding-block:6px 20px}
+.hero h1{font-size:clamp(1.7rem,5vw,2.6rem);font-weight:800}
+.hero p{color:var(--muted);max-width:56ch;margin:.6rem 0 0}
+.stats{display:flex;gap:10px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 16px;text-align:center;min-width:92px}
+.stat b{display:block;font:800 1.6rem var(--f-display);font-variant-numeric:tabular-nums}
+.stat span{font-size:.78rem;color:var(--muted)}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 16px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:6px 15px;font-weight:700;font-size:.9rem}
+.chip[aria-pressed="true"]{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px;display:grid;gap:12px;text-align:left;box-shadow:var(--shadow);transition:transform .15s,border-color .15s;min-width:0}
+.card:hover{transform:translateY(-2px);border-color:var(--brand)}
+.card-h{display:flex;gap:14px;align-items:center}
+.card h3{font-size:1.15rem}
+.group{font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;font-weight:700;color:var(--muted)}
+.card p{margin:0;color:var(--muted);font-size:.92rem}
+.mini{height:8px;border-radius:99px;background:var(--tint);overflow:hidden}
+.mini i{display:block;height:100%;background:var(--brand);border-radius:99px}
+.card-f{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.84rem;color:var(--muted);font-weight:600}
+.badge{border-radius:99px;padding:3px 11px;font-size:.78rem;font-weight:700;background:var(--tint);color:var(--brand)}
+.badge.ok{background:var(--good-bg);color:var(--good)}
+.badge.go{background:var(--warn-bg);color:var(--ink)}
+.reset{margin-top:28px;font-size:.88rem;color:var(--muted)}
+.reset button{background:none;border:none;text-decoration:underline;color:inherit;padding:4px}
+
+/* Sektion & Lektion */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:clamp(18px,4vw,30px);box-shadow:var(--shadow)}
+.sec-head{display:flex;gap:16px;align-items:center;margin-bottom:18px}
+.sec-head h1{font-size:clamp(1.5rem,4.5vw,2.1rem)}
+.steps{list-style:none;padding:0;margin:18px 0;display:grid;gap:10px}
+.step{display:flex;align-items:center;gap:14px;width:100%;border:1px solid var(--line);background:var(--bg);border-radius:14px;padding:12px 14px;text-align:left}
+.step:hover{border-color:var(--brand)}
+.step .tile{width:44px;height:44px;font-size:1.4rem;border-radius:12px}
+.step span{flex:1;font-weight:700}
+.step small{display:block;font-weight:400;color:var(--muted)}
+.check{font-weight:800;color:var(--good)}
+.lesson h2{font-size:clamp(1.4rem,4vw,1.9rem)}
+.lesson .intro{font-size:1.06rem;margin:.7rem 0 1.2rem;max-width:62ch}
+.pts{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.pt{display:flex;gap:14px;background:var(--bg);border-radius:16px;padding:14px;min-width:0}
+.pt .tile{width:48px;height:48px;font-size:1.5rem;border-radius:14px}
+.pt h3{font-size:1rem;margin-bottom:3px}
+.pt p{margin:0;font-size:.94rem;color:var(--muted)}
+.tip{display:flex;gap:12px;margin-top:16px;border-radius:14px;padding:14px;background:var(--warn-bg)}
+.tip b{display:block}
+.nav{display:flex;justify-content:space-between;gap:10px;margin-top:24px;flex-wrap:wrap}
+.dots{display:flex;gap:6px;justify-content:center;align-items:center}
+.dots i{width:9px;height:9px;border-radius:50%;background:var(--line)}
+.dots i.on{background:var(--brand);width:22px;border-radius:99px}
+
+/* Test */
+.q-meta{display:flex;justify-content:space-between;font-size:.82rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px}
+.q h2{font-size:clamp(1.25rem,3.6vw,1.65rem);margin-bottom:6px}
+.q .hint{color:var(--muted);font-size:.9rem;margin:0 0 14px}
+.opts{display:grid;gap:10px;margin-top:14px}
+.opt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:2px solid var(--line);background:var(--surface);border-radius:14px;padding:13px 15px;min-height:52px}
+.opt:hover{border-color:var(--brand)}
+.opt .m{flex:none;width:24px;height:24px;border:2px solid var(--muted);border-radius:50%;display:grid;place-items:center;font-size:.8rem;font-weight:800;color:transparent}
+.opt.multi .m{border-radius:7px}
+.opt.sel{border-color:var(--brand);background:var(--tint)}
+.opt.sel .m{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+textarea{width:100%;min-height:110px;border:2px solid var(--line);border-radius:14px;padding:12px 14px;font:inherit;background:var(--surface);color:var(--ink);resize:vertical}
+textarea:focus{border-color:var(--brand);outline:none}
+
+/* Ergebnis */
+.result{text-align:center}
+.ring{position:relative;width:min(220px,60vw);margin:6px auto 4px}
+.ring svg{display:block;width:100%;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:14}
+.ring .bg{stroke:var(--tint)}
+.ring .fg{stroke-linecap:round;transition:stroke-dashoffset 1s ease}
+.ring .c{position:absolute;inset:0;display:grid;place-content:center}
+.ring .c b{font:800 clamp(2.2rem,9vw,3rem) var(--f-display);font-variant-numeric:tabular-nums}
+.ring .c span{font-size:.85rem;color:var(--muted)}
+.rating{font:800 clamp(1.4rem,4.5vw,1.9rem) var(--f-display);margin-top:8px}
+.rating-sub{color:var(--muted);max-width:50ch;margin:6px auto 0}
+.scoreline{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:16px 0}
+.review{display:grid;gap:12px;text-align:left;margin-top:26px}
+.rv{border:1px solid var(--line);border-left-width:6px;border-radius:14px;padding:14px 16px;background:var(--surface);min-width:0}
+.rv.ok{border-left-color:var(--good)}.rv.part{border-left-color:var(--accent)}.rv.bad{border-left-color:var(--bad)}
+.rv h4{margin:0 0 6px;font-size:1rem}
+.rv .pt-s{float:right;font-weight:800;font-variant-numeric:tabular-nums;margin-left:10px}
+.rv p{margin:4px 0;font-size:.93rem;overflow-wrap:anywhere}
+.rv .yours{color:var(--bad)}.rv.ok .yours{color:var(--good)}
+.rv .right{color:var(--good)}
+.rv .why{color:var(--muted)}
+
+@media (max-width:620px){.hero{grid-template-columns:1fr}.brand span{display:none}.nav .btn{flex:1}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<header id="top"><div class="wrap">
+  <div class="top-row">
+    <button id="back" hidden type="button">← Zurück</button>
+    <div class="brand"><i>✦</i><span>Adera Academy</span></div>
+    <div id="crumb"></div>
+  </div>
+  <div class="track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="pb"><div class="fill" id="fill"></div></div>
+  <div class="top-meta"><span id="plabel"></span><span id="ppct"></span></div>
+</div></header>
+<main class="wrap" id="app"></main>
+
+<script>
+/* ============ INHALTE ============ */
+const mc=(q,right,wrong,e)=>({t:"mc",q,right,wrong,e});
+const mu=(q,rights,wrongs,e)=>({t:"mu",q,rights,wrongs,e});
+const tx=(q,groups,show,e)=>({t:"tx",q,groups,show,e});
+
+const SECTIONS=[
+{id:"beruf",group:"Allgemeinwissen",icon:"🧽",h:185,title:"Berufsbild & Grundlagen",sub:"Was Gebäudereiniger leisten, welche Reinigungsarten es gibt und wie der Sinnersche Kreis funktioniert.",
+lessons:[
+{icon:"🏢",title:"Der Beruf Gebäudereiniger/in",intro:"Gebäudereiniger/innen halten Gebäude sauber, hygienisch und werthaltig. Es ist ein anerkannter Handwerksberuf.",
+ pts:[["🎓","3 Jahre Ausbildung","Duale Ausbildung: praktisch im Betrieb, theoretisch in der Berufsschule."],["🏥","Viele Einsatzorte","Büros, Kliniken, Schulen, Hotels, Industriehallen, Fassaden und Glasflächen."],["🛡️","Mehr als Putzen","Hygiene, Werterhalt der Oberflächen und ein sicheres Arbeitsumfeld für andere."],["🕐","Besondere Zeiten","Gereinigt wird oft früh morgens, abends oder am Wochenende, wenn kaum Betrieb ist."]],
+ tip:["Stolz auf den Beruf","Ohne saubere Gebäude funktionieren Krankenhäuser, Schulen und Büros nicht."]},
+{icon:"📋",title:"Die Reinigungsarten",intro:"Je nach Ziel und Zeitpunkt wird eine andere Reinigungsart eingesetzt.",
+ pts:[["🔁","Unterhaltsreinigung","Regelmäßig (z. B. täglich oder wöchentlich) zur Erhaltung des sauberen Zustands."],["💪","Grundreinigung","Gründlich und in größeren Abständen: entfernt Altbeläge, Pflegefilme und hartnäckigen Schmutz."],["👀","Sichtreinigung","Zwischendurch, es werden nur sichtbare Verschmutzungen beseitigt."],["🏗️","Bauendreinigung","Nach Bau- oder Renovierungsarbeiten: Staub, Farbreste, Mörtel, Folien."],["🪟","Glas- & Fassadenreinigung","Eigenes Fachgebiet mit speziellen Werkzeugen und Sicherheitsregeln."]]},
+{icon:"⭕",title:"Der Sinnersche Kreis",intro:"Jede Reinigung besteht aus vier Faktoren. Zusammen ergeben sie das Reinigungsergebnis.",
+ pts:[["🧪","Chemie","Das Reinigungsmittel und seine Konzentration."],["💪","Mechanik","Wischen, Bürsten, Scheuern, Druck."],["🌡️","Temperatur","Warmes Wasser löst Schmutz meist besser."],["⏱️","Zeit","Einwirkzeit des Mittels und Dauer der Arbeit."]],
+ tip:["Ausgleichsregel","Wird ein Faktor verringert, muss ein anderer erhöht werden. Weniger Chemie heißt z. B. mehr Einwirkzeit oder mehr Mechanik."]}],
+qs:[
+mc("Wie lange dauert die Ausbildung zum/zur Gebäudereiniger/in?","3 Jahre",["1 Jahr","2 Jahre","5 Jahre"],"Die duale Ausbildung dauert 3 Jahre."),
+mc("Welche Reinigungsart wird regelmäßig, z. B. täglich im Büro, durchgeführt?","Unterhaltsreinigung",["Grundreinigung","Bauendreinigung","Sonderreinigung nach Brand"],"Unterhaltsreinigung erhält den sauberen Zustand in festen Abständen."),
+mc("Was ist das Ziel einer Grundreinigung?","Altbeläge und hartnäckigen Schmutz gründlich entfernen",["Nur sichtbaren Staub entfernen","Böden mit Wasser abspülen","Fenster streifenfrei machen"],"Die Grundreinigung entfernt Pflegefilme und Altverschmutzungen und wird in größeren Abständen gemacht."),
+mc("Welche Reinigung erfolgt nach Abschluss von Bauarbeiten?","Bauendreinigung",["Sichtreinigung","Unterhaltsreinigung","Hygienereinigung"],"Die Bauendreinigung entfernt Bauschmutz vor der Übergabe."),
+mc("Welche vier Faktoren bilden den Sinnerschen Kreis?","Chemie, Mechanik, Temperatur, Zeit",["Wasser, Seife, Tuch, Eimer","Chemie, Farbe, Licht, Zeit","Mechanik, Druck, Duft, Temperatur"],"Chemie, Mechanik, Temperatur und Zeit ergeben zusammen 100 % des Reinigungsergebnisses."),
+mc("Du darfst weniger Reinigungsmittel einsetzen. Was gleichst du am besten aus?","Die Einwirkzeit verlängern",["Gar nichts, das Ergebnis bleibt gleich","Das Mittel mit einem zweiten mischen","Die Fläche nur kurz abwischen"],"Wird ein Faktor kleiner, muss ein anderer größer werden."),
+mc("Was bedeutet Sichtreinigung?","Nur sichtbare Verschmutzungen zwischendurch entfernen",["Reinigung nur der Fenster","Reinigung mit Sichtkontrolle durch den Kunden","Komplette Tiefenreinigung"],"Sichtreinigung ist eine schnelle Zwischenreinigung."),
+mu("Welche Faktoren gehören zum Sinnerschen Kreis?",["Chemie","Mechanik","Temperatur","Zeit"],["Lautstärke","Farbe"],"Es sind genau vier Faktoren: Chemie, Mechanik, Temperatur, Zeit."),
+mu("Welche Aussagen zum Beruf stimmen?",["Es ist ein anerkannter Ausbildungsberuf","Die Ausbildung ist dual (Betrieb und Berufsschule)"],["Der Beruf umfasst nur Fensterputzen","Eine Ausbildung ist ohne Berufsschule möglich"],"Gebäudereiniger/in ist ein dualer Handwerksberuf mit breitem Aufgabenfeld."),
+tx("Nenne die vier Faktoren des Sinnerschen Kreises.",[["chemie"],["mechanik"],["temperatur","waerme"],["zeit"]],"Chemie, Mechanik, Temperatur, Zeit","Alle vier zusammen bestimmen das Reinigungsergebnis."),
+tx("Wie heißt die Reinigungsart, bei der nur sichtbarer Schmutz zwischendurch entfernt wird?",[["sichtreinigung","sicht"]],"Sichtreinigung","Sie ergänzt die Unterhaltsreinigung."),
+tx("Nenne einen typischen Einsatzort für Gebäudereiniger.",[["buero","krankenhaus","klinik","schule","hotel","praxis","fassade","kita","industrie","halle","kaufhaus","supermarkt","gebaeude","werk","fenster"]],"z. B. Büro, Krankenhaus, Schule, Hotel","Gebäudereiniger arbeiten in nahezu allen Gebäudearten."),
+tx("Wie heißt das Modell, das Chemie, Mechanik, Temperatur und Zeit beschreibt?",[["sinner"]],"Sinnerscher Kreis","Es ist nach Dr. Herbert Sinner benannt.")]},
+
+{id:"sicher",group:"Allgemeinwissen",icon:"🦺",h:35,title:"Arbeitssicherheit & Erste Hilfe",sub:"Schutzausrüstung, Sicherheitszeichen, Unfallverhütung und richtiges Handeln im Notfall.",
+lessons:[
+{icon:"🥽",title:"Persönliche Schutzausrüstung (PSA)",intro:"Die PSA schützt dich vor Chemikalien, Nässe, Verletzungen und Rutschunfällen. Der Betrieb stellt sie bereit, du trägst sie.",
+ pts:[["🧤","Schutzhandschuhe","Schützen die Haut vor Reinigern und Nässe. Das passende Material steht im Sicherheitsdatenblatt."],["🥽","Schutzbrille","Bei Spritzgefahr, z. B. beim Ansetzen von Konzentraten oder Überkopfarbeiten."],["👟","Rutschhemmende Schuhe","Pflicht bei nassen Böden. Offene Schuhe sind tabu."],["🧴","Hautschutz","Nach Hautschutzplan eincremen. Das beugt Hauterkrankungen vor."]]},
+{icon:"⚠️",title:"Gefahren im Arbeitsalltag",intro:"Die meisten Unfälle passieren durch Rutschen, Stolpern, Stürzen und falsches Heben.",
+ pts:[["💦","Rutschen","Nasse Böden mit Warnschild sichern, zügig trocknen lassen und nebelfeucht arbeiten."],["🔌","Stolpern","Kabel und Schläuche nicht quer durch Laufwege legen."],["🪜","Leitern","Vor Gebrauch prüfen, standsicher aufstellen, immer drei Punkte Kontakt (zwei Füße und eine Hand oder zwei Hände und ein Fuß)."],["📦","Heben & Tragen","Aus den Knien heben, Last nah am Körper, Rücken gerade, nicht verdrehen."]]},
+{icon:"🚸",title:"Sicherheitszeichen",intro:"Form und Farbe verraten sofort, was ein Zeichen bedeutet.",
+ pts:[["🔴","Rot: Verbot & Brandschutz","Runde Verbotszeichen und Feuerlöscher-Kennzeichnung."],["🟡","Gelb: Warnung","Dreieckige Zeichen, z. B. „Rutschgefahr“ oder „Gefährliche Stoffe“."],["🔵","Blau: Gebot","Runde Zeichen, die etwas vorschreiben, z. B. Handschutz tragen."],["🟢","Grün: Rettung & Erste Hilfe","Fluchtwege, Notausgänge, Erste-Hilfe-Stellen."]]},
+{icon:"🚑",title:"Erste Hilfe & Notfall",intro:"Ruhe bewahren, sich selbst schützen, Hilfe holen. Das ist die Reihenfolge.",
+ pts:[["☎️","Notruf 112","Wo? Was? Wie viele Verletzte? Welche Verletzungen? Warten auf Rückfragen."],["💧","Chemikalie im Auge","Sofort mit viel klarem Wasser spülen, 10 bis 15 Minuten, dann zum Arzt."],["🩹","Verbandkasten","Standort kennen. Jede Verletzung dokumentieren (Verbandbuch) und dem Vorgesetzten melden."],["🧯","Brand","Alarm auslösen, Gefährdete warnen, nur bei Entstehungsbrand und ohne Eigengefahr löschen."]],
+ tip:["Eigenschutz zuerst","Nur helfen, wenn du dich nicht selbst in Gefahr bringst."]}],
+qs:[
+mc("Wie lautet die europaweite Notrufnummer?","112",["110 und 112 sind dasselbe","115","911"],"Die 112 erreicht Rettungsdienst und Feuerwehr."),
+mc("Welche Farbe haben Gebotszeichen?","Blau",["Rot","Gelb","Grün"],"Gebotszeichen sind blau und rund."),
+mc("Welche Farbe haben Rettungszeichen (Fluchtweg, Erste Hilfe)?","Grün",["Rot","Blau","Gelb"],"Rettungszeichen sind grün."),
+mc("Was bedeutet ein gelbes dreieckiges Schild?","Warnung vor einer Gefahr",["Verbot","Gebot","Fluchtweg"],"Warnzeichen sind gelb und dreieckig."),
+mc("Wie steigst du richtig auf eine Leiter?","Mit drei Punkten Kontakt, Gesicht zur Leiter",["Beide Hände frei, damit es schneller geht","Rückwärts mit Eimer in der Hand","Schnell und mit Schwung"],"Drei-Punkt-Kontakt hält dich sicher."),
+mc("Was tust du, wenn Reiniger ins Auge spritzt?","Mit viel klarem Wasser 10 bis 15 Minuten spülen",["Mit dem Ärmel abwischen","Abwarten, ob es besser wird","Mit Reiniger nachspülen"],"Gründliches Spülen mit Wasser, danach ärztliche Hilfe."),
+mc("Wie hebst du eine schwere Last richtig?","Aus den Knien, Last nah am Körper",["Mit rundem Rücken","Mit gestreckten Beinen","Ruckartig und verdreht"],"Das schont den Rücken."),
+mu("Was gehört zur persönlichen Schutzausrüstung?",["Schutzhandschuhe","Schutzbrille","Rutschhemmende Schuhe"],["Kopfhörer mit Musik","Offene Sandalen"],"Kopfhörer und offene Schuhe sind keine Schutzausrüstung."),
+mu("Was verhindert Rutschunfälle?",["Warnschild aufstellen","Nebelfeucht wischen und zügig trocknen lassen"],["Das Schild nach dem Wischen sofort wegräumen","Wasserlachen liegen lassen"],"Nasse Bereiche sichern, bis sie trocken sind."),
+tx("Wie lautet die Notrufnummer für Feuerwehr und Rettungsdienst?",[["112"]],"112","Wo, was, wie viele, welche Verletzungen, warten."),
+tx("Wofür steht die Abkürzung PSA?",[["schutzausr"]],"Persönliche Schutzausrüstung","Der Arbeitgeber stellt sie, du trägst sie."),
+tx("Womit spülst du Chemikalienspritzer aus dem Auge?",[["wasser"]],"Mit viel klarem Wasser","10 bis 15 Minuten spülen."),
+tx("Nenne zwei Teile der persönlichen Schutzausrüstung.",[["handschuh"],["brille","schuh","maske","atemschutz","gehoerschutz","schutzkleidung","helm"]],"z. B. Handschuhe und Schutzbrille","Welche PSA nötig ist, steht in der Betriebsanweisung.")]},
+
+{id:"verhalten",group:"Allgemeinwissen",icon:"🤝",h:265,title:"Kundenservice & Verhalten",sub:"Auftreten, Diskretion, Schlüsselverantwortung und der Umgang mit Kunden und Kollegen.",
+lessons:[
+{icon:"👔",title:"Auftreten & Zuverlässigkeit",intro:"Du bist die Visitenkarte deines Betriebs. Kunden bewerten dich und deine Arbeit.",
+ pts:[["⏰","Pünktlichkeit","Pünktlich zum Einsatz kommen. Bei Verspätung oder Krankheit so früh wie möglich Bescheid geben."],["👕","Saubere Dienstkleidung","Gepflegtes Äußeres und vollständige Dienstkleidung."],["🙂","Freundlich grüßen","Höflicher Umgang mit allen im Gebäude, auch wenn es hektisch ist."],["📵","Privates Handy","Während der Arbeit zurückhalten, nicht in Kundenräumen telefonieren."]]},
+{icon:"🔒",title:"Diskretion, Datenschutz & Schlüssel",intro:"In Büros und Kliniken siehst du vertrauliche Dinge. Das bleibt vertraulich.",
+ pts:[["🤐","Verschwiegenheit","Nichts über Kunden, Personen oder Inhalte weitererzählen."],["📄","Nicht lesen, nicht fotografieren","Unterlagen und Bildschirme nicht ansehen, nicht durchsuchen, nichts fotografieren oder posten."],["🔑","Schlüssel","Immer sicher aufbewahren, nie weitergeben. Verlust sofort melden."],["👛","Fundsachen","Wertsachen unberührt lassen bzw. abgeben und dem Vorgesetzten melden."]]},
+{icon:"💬",title:"Umgang mit Kunden & Reklamationen",intro:"Beschwerden sind eine Chance, besser zu werden.",
+ pts:[["👂","Zuhören","Ruhig bleiben, ausreden lassen, nicht rechtfertigen oder streiten."],["📝","Aufnehmen","Anliegen notieren und an den Vorgesetzten weitergeben."],["💥","Schäden melden","Passiert etwas, sofort melden. Vertuschen ist die schlechteste Option."],["✅","Nachweise","Leistungsnachweis oder Checkliste vollständig und ehrlich ausfüllen."]]},
+{icon:"👥",title:"Teamarbeit",intro:"Gute Reinigung entsteht im Team.",
+ pts:[["🗣️","Absprachen","Aufgaben, Räume und Material klar absprechen, Übergaben sauber machen."],["🤲","Hilfe","Kollegen unterstützen, auch bei schweren Aufgaben."],["🌍","Verständigung","Bei Sprachbarrieren helfen Piktogramme, Gesten und Fotos."],["🚭","Respekt","Respektvoller Umgang miteinander, keine Diskriminierung."]]}],
+qs:[
+mc("Du hast den Schlüssel zu einem Objekt verloren. Was tust du?","Sofort den Vorgesetzten informieren",["Erst mal suchen und es verschweigen","Den Kunden anrufen, aber nicht den Betrieb","Nichts, vielleicht taucht er wieder auf"],"Ein Schlüsselverlust ist ein Sicherheitsrisiko und muss sofort gemeldet werden."),
+mc("Auf einem Schreibtisch liegen vertrauliche Unterlagen. Wie verhältst du dich?","Nicht lesen und nicht verlegen, nur drumherum reinigen",["Kurz durchblättern","Ein Foto machen","In den Papierkorb werfen"],"Diskretion ist Pflicht."),
+mc("Du findest im Büro eine Geldbörse. Was tust du?","Nicht einstecken, dem Vorgesetzten bzw. Ansprechpartner melden",["Einstecken und nicht auffallen","Liegen lassen und nichts sagen","In deiner Pause durchsuchen"],"Fundsachen werden abgegeben."),
+mc("Dir ist eine Vase heruntergefallen und zerbrochen. Was tust du?","Sofort melden",["Entsorgen und nichts sagen","Auf Kollegen schieben","Warten, bis es jemand merkt"],"Schäden werden sofort gemeldet. Ehrlichkeit schützt dich und den Betrieb."),
+mc("Ein Kunde beschwert sich über die Reinigung. Was ist richtig?","Ruhig zuhören, Anliegen notieren und weitergeben",["Sofort widersprechen","Weggehen","Laut diskutieren"],"Freundlichkeit und sachliche Aufnahme."),
+mc("Du bist morgens krank. Wann sagst du Bescheid?","So früh wie möglich, vor Arbeitsbeginn",["Gar nicht, du kommst eben nicht","Nach Feierabend","Erst am nächsten Tag"],"Nur so kann der Betrieb Ersatz organisieren."),
+mc("Darf man Fotos aus einem Kundengebäude in sozialen Medien posten?","Nein, das verletzt Diskretion und Datenschutz",["Ja, wenn niemand zu sehen ist","Ja, wenn es gut aussieht","Ja, mit Filter"],"Aufnahmen aus Kundenobjekten sind tabu."),
+mu("Welches Verhalten ist richtig?",["Pünktlich zum Einsatz erscheinen","Saubere Dienstkleidung tragen","Schlüssel sicher aufbewahren"],["Schlüssel an Kollegen verleihen","Privates Telefonieren in Kundenräumen"],"Zuverlässigkeit und Diskretion machen Vertrauen."),
+mu("Was gehört zur Verantwortung für Schlüssel?",["Verlust sofort melden","Nicht liegen lassen"],["An Bekannte weitergeben","Nachmachen lassen"],"Schlüssel gehören nur in die Hände Berechtigter."),
+tx("Was tust du bei einem Schlüsselverlust?",[["melden","vorgesetzt","informier","bescheid","sofort"]],"Sofort dem Vorgesetzten melden","Der Betrieb muss reagieren können."),
+tx("Wie nennt man die Pflicht, über Betriebs- und Kundeninterna zu schweigen?",[["verschwiegen","diskret","schweigepflicht","geheimhalt"]],"Verschwiegenheit / Diskretion","Sie gilt auch nach Feierabend."),
+tx("Was machst du mit einer gefundenen Wertsache?",[["abgeb","melden","fundb","vorgesetzt","auftraggeber","ansprechpartner"]],"Abgeben bzw. dem Vorgesetzten melden","Nie selbst behalten."),
+tx("Nenne eine Regel für gutes Auftreten beim Kunden.",[["puenkt","freundl","sauber","kleidung","hoeflich","zuverl","gruess","gruss","respekt","diskret","ordentlich"]],"z. B. pünktlich, freundlich, saubere Dienstkleidung","Das Auftreten prägt das Bild des Betriebs.")]},
+
+{id:"umwelt",group:"Allgemeinwissen",icon:"♻️",h:140,title:"Umwelt & Nachhaltigkeit",sub:"Abfall trennen, sparsam dosieren und Reinigungsmittel richtig entsorgen.",
+lessons:[
+{icon:"🗑️",title:"Abfall richtig trennen",intro:"Getrennte Sammlung spart Rohstoffe. Im Objekt gelten oft eigene Regeln, frage nach.",
+ pts:[["🟡","Gelbe Tonne / Gelber Sack","Verpackungen aus Kunststoff, Metall und Verbundstoffen."],["🔵","Blau: Papier & Pappe","Zeitungen, Kartons, Büropapier."],["🟤","Braun: Bioabfall","Essensreste, Kaffeesatz, Pflanzenreste."],["⚫","Restmüll","Alles, was nicht verwertbar ist, z. B. Kehricht."],["⚠️","Sonderabfall","Batterien, Leuchtmittel und Chemikalienreste gehören zur Schadstoff- bzw. Sondersammlung."]]},
+{icon:"💧",title:"Sparsam dosieren & arbeiten",intro:"Mehr Mittel heißt nicht sauberer. Es heißt nur mehr Rückstände, mehr Kosten und mehr Umweltbelastung.",
+ pts:[["📏","Dosierhilfen nutzen","Dosierpumpe, Messbecher oder Dosierstation nach Herstellerangabe."],["💦","Wasser sparen","Wischwasser nur wechseln, wenn nötig. Keine Wasserverschwendung."],["🧽","Mikrofaser nutzen","Waschbare Tücher ersetzen Einwegtücher und brauchen wenig Chemie."],["📦","Mehrweg & Nachfüllen","Konzentrate und Nachfüllsysteme sparen Verpackung."]]},
+{icon:"🌿",title:"Umweltzeichen & Entsorgung von Mitteln",intro:"Umweltsiegel helfen bei der Auswahl. Reste müssen sachgerecht entsorgt werden.",
+ pts:[["🏅","Blauer Engel","Deutsches Umweltzeichen für besonders umweltverträgliche Produkte."],["🇪🇺","EU Ecolabel","Europäisches Umweltzeichen (die „EU-Blume“)."],["🚫","Nicht in den Abfluss","Chemikalienreste nicht in Toilette oder Ausguss kippen."],["🧴","Gebinde","Nur restentleerte Behälter in den Wertstoffkreislauf, Originalgebinde nutzen."]]}],
+qs:[
+mc("In welche Tonne gehört Altpapier?","Blaue Tonne",["Gelbe Tonne","Braune Tonne","Schwarze Tonne"],"Papier und Pappe kommen in die blaue Tonne."),
+mc("Wohin gehören Verpackungen aus Kunststoff und Metall?","Gelbe Tonne / Gelber Sack",["Blaue Tonne","Biotonne","Glascontainer"],"Leichtverpackungen werden gelb gesammelt."),
+mc("Was gehört in die braune Tonne?","Bioabfall wie Kaffeesatz",["Altpapier","Leuchtstoffröhren","Batterien"],"Braun steht für Bioabfall."),
+mc("Wohin gehören alte Batterien?","In die Batteriesammlung bzw. Schadstoffsammlung",["In den Restmüll","In die Biotonne","In den Ausguss"],"Batterien enthalten Schadstoffe und werden getrennt gesammelt."),
+mc("Welches deutsche Umweltzeichen kennzeichnet besonders umweltverträgliche Produkte?","Blauer Engel",["Grüner Punkt","CE-Zeichen","Roter Stern"],"Der Blaue Engel ist das deutsche Umweltzeichen."),
+mc("Was ist die Folge von Überdosierung?","Mehr Rückstände, höhere Kosten, stärkere Umweltbelastung",["Bessere Reinigung","Weniger Arbeit","Schnellere Trocknung"],"Überdosierung bringt keine Vorteile."),
+mc("Was ist ein Vorteil von Mikrofasertüchern?","Waschbar und wiederverwendbar, brauchen wenig Chemie",["Sie sind Einwegprodukte","Sie ersetzen jede Chemie","Sie dürfen nie gewaschen werden"],"Das spart Abfall, Wasser und Chemie."),
+mu("Welche Maßnahmen schützen die Umwelt?",["Exakt dosieren","Mikrofasertücher waschen und wiederverwenden"],["Reste in den Abfluss kippen","Doppelte Menge Reiniger nehmen"],"Weniger Verbrauch, richtige Entsorgung."),
+mu("Was gehört in die Schadstoff- bzw. Sondersammlung?",["Batterien","Chemikalienreste","Leuchtstoffröhren"],["Altpapier"],"Papier wird über die Papiertonne entsorgt."),
+tx("Welche Farbe hat die Tonne für Altpapier?",[["blau"]],"Blau","Blaue Tonne für Papier und Pappe."),
+tx("Wohin gehören Altbatterien?",[["sammel","sonder","schadstoff","handel","recyclinghof","wertstoffhof"]],"In die Batteriesammlung bzw. Schadstoffsammlung","Nie in den Restmüll."),
+tx("Nenne ein Umweltsiegel.",[["blauer engel","engel","ecolabel","eu blume","blume","nordic","svanen"]],"z. B. Blauer Engel oder EU Ecolabel","Siegel helfen bei der Produktwahl."),
+tx("Nenne einen Grund, warum man nicht überdosieren sollte.",[["umwelt","kosten","rueckst","haut","teuer","schaum","geld","verschwend"]],"Umwelt, Kosten, Rückstände, Hautbelastung","Richtige Dosierung reicht völlig.")]},
+
+{id:"chemie",group:"Fachwissen",icon:"🧪",h:300,title:"Reinigungsmittel & Chemie",sub:"pH-Wert, Reinigerarten, Gefahrstoffkennzeichnung (GHS) und die goldenen Regeln im Umgang mit Chemie.",
+lessons:[
+{icon:"🧪",title:"Der pH-Wert",intro:"Der pH-Wert (0 bis 14) sagt, wie sauer oder alkalisch ein Mittel ist.",
+ pts:[["🍋","pH unter 7: sauer","Löst Kalk, Rost, Urinstein, Zementschleier."],["💧","pH 7: neutral","Schonend, für den Unterhalt und empfindliche Beläge."],["🧼","pH über 7: alkalisch","Löst Fett, Eiweiß, Öl und Ruß."],["🧬","Je extremer, desto aggressiver","Stark saure und stark alkalische Mittel sind ätzend. Schutzhandschuhe und Brille tragen."]]},
+{icon:"🧴",title:"Wichtige Reinigerarten",intro:"Das richtige Mittel für den richtigen Schmutz.",
+ pts:[["🟢","Neutralreiniger","Für die tägliche Unterhaltsreinigung der meisten Böden und Flächen."],["🟣","Alkalische Reiniger","Fettlöser, Küchenreiniger, Intensivreiniger."],["🔴","Saure Reiniger","Sanitär- und Entkalkungsreiniger."],["🪟","Glasreiniger","Enthalten oft Alkohol und trocknen schlierenfrei."],["🧽","Scheuermittel","Wirken durch Körnung. Nicht für kratzempfindliche Flächen."]],
+ tip:["Tenside","Tenside setzen die Oberflächenspannung des Wassers herab und lösen so Schmutz von der Fläche."]},
+{icon:"☣️",title:"Gefahrstoffe & GHS-Piktogramme",intro:"Gefährliche Reiniger sind mit roten Rauten gekennzeichnet.",
+ pts:[["🔥","Flamme","Entzündbar, brennbar."],["🧪","Ätzwirkung","Verätzt Haut, Augen oder Metalle."],["💀","Totenkopf","Akut giftig, schon kleine Mengen gefährlich."],["❗","Ausrufezeichen","Reizend oder gesundheitsschädlich."],["🐟","Umwelt","Gewässergefährdend."],["🫁","Gesundheitsgefahr","Langzeit- oder Organschäden möglich."]],
+ tip:["Wo steht was?","Das Sicherheitsdatenblatt (SDB) liefert alle Informationen. Die Betriebsanweisung fasst sie für deinen Arbeitsplatz zusammen."]},
+{icon:"⛔",title:"Die goldenen Regeln",intro:"Fehler im Umgang mit Chemie können lebensgefährlich sein.",
+ pts:[["🚫","Nie mischen","Saure Reiniger plus chlorhaltige Reiniger setzen giftiges Chlorgas frei."],["🍾","Nie umfüllen","Nie in Lebensmittel- oder Getränkeflaschen, immer im Originalgebinde oder beschriftet."],["📏","Dosieren","Erst Wasser, dann Reiniger. Dosieranleitung beachten."],["🔒","Lagern","Verschlossen, kühl und für Unbefugte unzugänglich."]]}],
+qs:[
+mc("Welcher pH-Wert ist neutral?","7",["0","10","14"],"pH 7 ist neutral."),
+mc("Welche Art Reiniger löst Kalk am besten?","Saurer Reiniger",["Alkalischer Reiniger","Neutralreiniger","Scheuermilch"],"Säuren lösen Kalk, Rost und Urinstein."),
+mc("Welche Art Reiniger löst Fett am besten?","Alkalischer Reiniger",["Saurer Reiniger","Reines Wasser","Entkalker"],"Alkalische Mittel lösen Fett und Eiweiß."),
+mc("Was bedeutet das GHS-Piktogramm mit Totenkopf?","Akut giftig",["Brennbar","Umweltgefährlich","Reizend"],"Der Totenkopf warnt vor akuter Giftigkeit."),
+mc("Was passiert, wenn du sauren und chlorhaltigen Reiniger mischst?","Es entsteht giftiges Chlorgas",["Die Wirkung verdoppelt sich","Nichts","Es entsteht harmloser Schaum"],"Das kann lebensgefährlich sein. Reiniger nie mischen."),
+mc("Wo findest du alle Sicherheitsinformationen zu einem Produkt?","Im Sicherheitsdatenblatt",["Auf dem Preisschild","Im Prospekt","Im Wetterbericht"],"Das SDB enthält Gefahren, Schutzmaßnahmen, Erste Hilfe, Entsorgung."),
+mc("Welcher Reiniger passt für die tägliche Unterhaltsreinigung der meisten Böden?","Neutralreiniger",["Rohrreiniger","Rostentferner","Backofenspray"],"Neutralreiniger sind schonend."),
+mu("Wofür eignen sich alkalische Reiniger?",["Fett","Eiweiß"],["Kalk","Rost"],"Kalk und Rost lösen Säuren."),
+mu("Was gehört zum sicheren Umgang mit Reinigern?",["Gebinde beschriften","Dosieranleitung beachten"],["Reiniger mischen für stärkere Wirkung","In Getränkeflaschen umfüllen"],"Mischen und Umfüllen sind verboten."),
+tx("Welcher pH-Wert ist neutral?",[["7","sieben"]],"7","Darunter sauer, darüber alkalisch."),
+tx("Was kann entstehen, wenn saure und chlorhaltige Reiniger gemischt werden?",[["chlor","gas","giftig"]],"Giftiges Chlorgas","Nie Reiniger mischen."),
+tx("Wie heißt das Dokument mit allen Sicherheitsinformationen zu einem Produkt?",[["sicherheitsdatenblatt","sdb"]],"Sicherheitsdatenblatt (SDB)","Es wird vom Hersteller geliefert."),
+tx("Welche Verschmutzung entfernt ein saurer Reiniger?",[["kalk","rost","urinstein","zement"]],"Kalk, Rost, Urinstein","Daher sind WC- und Sanitärreiniger sauer.")]},
+
+{id:"verfahren",group:"Fachwissen",icon:"🧹",h:215,title:"Reinigungsverfahren",sub:"Arbeitsreihenfolge, Wischverfahren, Zweieimer-Methode und Spezialverfahren.",
+lessons:[
+{icon:"🧭",title:"Grundregeln der Arbeitsorganisation",intro:"Wer in der richtigen Reihenfolge arbeitet, spart Zeit und verschmutzt nichts doppelt.",
+ pts:[["⬇️","Von oben nach unten","Erst Regale und Lampen, dann Tische, zuletzt der Boden."],["✨","Von sauber nach schmutzig","So verschleppst du keinen Schmutz auf saubere Flächen."],["🚪","Von hinten zum Ausgang","Bodenarbeiten enden an der Tür."],["🌬️","Trocken vor feucht","Erst Staub aufnehmen, dann feucht wischen."]]},
+{icon:"🪣",title:"Wischverfahren",intro:"Der Boden bestimmt, wie viel Feuchtigkeit erlaubt ist.",
+ pts:[["🌫️","Nebelfeucht","Kaum Feuchtigkeit, z. B. für Parkett und Laminat."],["💧","Feucht","Standard für die meisten Bodenbeläge."],["🌊","Nass","Für Grundreinigung und Nassbereiche, danach Wasser aufnehmen."],["🪣","Zweieimer-Methode","Eimer 1 mit Reinigungslösung, Eimer 2 mit Klarwasser zum Auswringen. So bleibt die Lösung länger sauber."],["♾️","Schlangenlinie / Achter","Ohne abzusetzen wischen und dabei rückwärts gehen."]]},
+{icon:"🛒",title:"Reinigungswagen & Textilien",intro:"Gut ausgestattet arbeitet es sich schneller und hygienischer.",
+ pts:[["🎨","Farbcodierte Tücher","Eigene Tücher je Bereich. Nicht vertauschen."],["🧽","Mopps & Tücher","Raumweise wechseln und thermisch waschen."],["🔄","Lösung wechseln","Wenn das Wasser sichtbar schmutzig ist."],["⚠️","Warnschild","Nasse Bereiche absichern."]]},
+{icon:"🌀",title:"Spezialverfahren",intro:"Nicht jeder Schmutz lässt sich mit dem Wischmopp lösen.",
+ pts:[["🧲","Staubbinden","Trockene Staubaufnahme ohne Aufwirbeln."],["🌪️","Saugen","Mit Filter, besonders bei Teppichen."],["🛁","Sprühextraktion","Teppichtiefenreinigung: Lösung einsprühen und mit Wasser wieder absaugen."],["🏁","Beschichten","Nach Grundreinigung wird ein Pflegefilm aufgetragen."]]}],
+qs:[
+mc("In welche Richtung wird gearbeitet?","Von oben nach unten",["Von unten nach oben","Immer wild durcheinander","Zuerst Boden, dann Regale"],"So fällt Staub nicht auf bereits gereinigte Flächen."),
+mc("Wie lautet die Regel für die Reihenfolge der Flächen?","Von sauber nach schmutzig",["Von schmutzig nach sauber","Egal","Zufällig"],"Vermeidet Keimverschleppung."),
+mc("Wie wird beim Wischen gelaufen?","Rückwärts, damit man nicht in die frisch gewischte Fläche tritt",["Vorwärts, schneller geht es nicht","Seitwärts","Im Kreis"],"So bleiben keine Fußabdrücke."),
+mc("Was gilt für die Reihenfolge trocken und feucht?","Erst trocken (Staub aufnehmen), dann feucht",["Erst feucht, dann trocken","Nur feucht","Nur trocken"],"Feuchter Staub schmiert."),
+mc("Wozu dient die Zweieimer-Methode?","Die Reinigungslösung bleibt länger sauber",["Man braucht weniger Wasser","Sie ersetzt das Reinigungsmittel","Der Boden trocknet langsamer"],"Der Mopp wird im Klarwasser ausgewrungen."),
+mc("Welches Wischverfahren ist für Parkett geeignet?","Nebelfeucht",["Nass","Mit viel Wasser","Dampf"],"Holz quillt bei zu viel Feuchtigkeit."),
+mc("Welches Verfahren reinigt Teppiche in der Tiefe?","Sprühextraktion",["Nebelfeuchtes Wischen","Staubwischen","Polieren"],"Mit Wasser und Reiniger spülen, mit Unterdruck absaugen."),
+mu("Welche Grundregeln stimmen?",["Von oben nach unten","Trocken vor feucht"],["Von schmutzig nach sauber","Boden zuerst, dann Regale"],"Planvolles Arbeiten verhindert doppelte Arbeit."),
+mu("Wann wechselst du das Wischwasser?",["Wenn es sichtbar verschmutzt ist","Beim Wechsel in einen hygienisch anderen Bereich"],["Nie, spart Zeit","Erst am Ende der Woche"],"Schmutziges Wasser verteilt Schmutz."),
+tx("Wie heißt die Methode mit zwei Eimern?",[["zweieimer","2 eimer","zwei eimer"]],"Zweieimer-Methode","Einer mit Lösung, einer mit Klarwasser."),
+tx("In welcher Richtung arbeitest du bei der Raumreinigung (senkrecht)?",[["oben"]],"Von oben nach unten","Staub fällt nach unten."),
+tx("Warum wischt man rückwärts?",[["fussabdr","betret","drueber","darueber","sauber","frisch","trittspur","spur"]],"Damit man nicht über frisch gewischte Flächen läuft","Der Boden bleibt sauber."),
+tx("Wie wird Parkett gewischt?",[["nebel","nebelfeucht","kaum feucht","leicht","wenig wasser"]],"Nebelfeucht","Kein stehendes Wasser.")]},
+
+{id:"hygiene",group:"Fachwissen",icon:"🧼",h:165,title:"Hygiene & Desinfektion",sub:"Reinigen oder desinfizieren, Farbcodierung, Händehygiene und Kontaktflächen.",
+lessons:[
+{icon:"🦠",title:"Reinigung vs. Desinfektion",intro:"Reinigen entfernt Schmutz, Desinfizieren senkt gezielt die Zahl von Krankheitserregern.",
+ pts:[["🧽","Erst reinigen","Schmutz und Eiweiß mindern die Wirkung des Desinfektionsmittels."],["🧴","Dann desinfizieren","Nur dort, wo es vorgeschrieben ist, z. B. Klinik, Küche, Sanitär."],["⏱️","Einwirkzeit einhalten","Nur die vorgeschriebene Zeit sichert die Wirkung. Nicht zu früh abwischen."],["📏","Richtig dosieren","Zu schwach wirkt nicht, zu stark belastet Haut und Umwelt."]]},
+{icon:"🎨",title:"Farbcodierung",intro:"Farbige Tücher verhindern, dass Keime von einem Bereich in den anderen gelangen.",
+ pts:[["🔴","Rot","WC, Urinal und Sanitär mit höchstem Risiko."],["🟡","Gelb","Waschbecken und übrige Sanitärflächen."],["🔵","Blau","Allgemeine Flächen, z. B. Büro, Möbel, Türen."],["🟢","Grün","Küche und Lebensmittelbereich."]],
+ tip:["Wichtig","Das Farbsystem kann im Betrieb abweichen. Frage nach dem Hygieneplan."]},
+{icon:"🖐️",title:"Händehygiene",intro:"Die Hände sind der wichtigste Überträger von Keimen.",
+ pts:[["🚿","Händewaschen","Mit Seife 20 bis 30 Sekunden, auch zwischen den Fingern."],["🧴","Händedesinfektion","Mittel in die trockenen Hände einreiben, Einwirkzeit nach Herstellerangabe, z. B. 30 Sekunden."],["🧤","Handschuhe wechseln","Nach WC-Bereichen, zwischen Räumen, bei Beschädigung."],["⏰","Wann?","Vor Arbeitsbeginn, nach dem WC, nach dem Ausziehen von Handschuhen, nach Pausen."]]},
+{icon:"🚪",title:"Kontaktflächen & Risikobereiche",intro:"Was viele anfassen, braucht regelmäßige Reinigung.",
+ pts:[["🔘","Kontaktflächen","Türklinken, Lichtschalter, Handläufe, Armaturen, Telefone, Tastaturen."],["🏥","Hochrisikobereiche","Klinik, Pflege, Arztpraxis, Küche."],["🧺","Textilien","Mopps und Tücher thermisch bzw. chemo-thermisch waschen und trocknen."],["📅","Hygieneplan","Beschreibt Mittel, Dosierung, Häufigkeit und Verantwortliche."]]}],
+qs:[
+mc("Was kommt zuerst?","Reinigen, dann desinfizieren",["Desinfizieren, dann reinigen","Nur desinfizieren","Nur trocken wischen"],"Schmutz mindert die Wirkung des Desinfektionsmittels."),
+mc("Wofür wird das rote Tuch typischerweise verwendet?","WC und Urinal",["Küche","Büro","Fenster"],"Rot ist für Toiletten bzw. Hochrisiko-Sanitärbereiche."),
+mc("Wofür wird das grüne Tuch typischerweise verwendet?","Küche und Lebensmittelbereich",["WC","Büro","Treppenhaus"],"Grün steht für Küche und Lebensmittel."),
+mc("Was ist die Einwirkzeit?","Die Zeit, die ein Mittel auf der Fläche bleiben muss, um zu wirken",["Die Zeit zum Trocknen des Mopps","Die Zeit, die du für den Raum brauchst","Die Pausenzeit"],"Zu früh abwischen macht das Mittel unwirksam."),
+mc("Wie lange wäschst du die Hände mindestens?","20 bis 30 Sekunden",["2 Sekunden","5 Sekunden","Eine Stunde"],"Seife, Wasser, Zeit."),
+mc("Welche ist eine typische Kontaktfläche?","Türklinke",["Zimmerdecke","Sockelleiste","Fußboden unter dem Schrank"],"Was oft berührt wird, wird oft gereinigt."),
+mc("Wann wechselst du Handschuhe?","Nach WC-Bereichen und zwischen Räumen",["Nie","Nur am Monatsende","Nur bei Regen"],"Sonst werden Keime verschleppt."),
+mu("Welche sind Kontaktflächen?",["Türklinke","Lichtschalter","Handlauf"],["Zimmerdecke","Sockelleiste"],"Regelmäßig berührte Flächen sind besonders wichtig."),
+mu("Wann machst du Händehygiene?",["Vor Arbeitsbeginn","Nach dem WC","Nach dem Ausziehen der Handschuhe"],["Nur wenn jemand zuschaut"],"Händehygiene gehört zu jedem Arbeitsschritt."),
+tx("Was passiert bei zu kurzer Einwirkzeit?",[["wirkt nicht","nicht wirk","unwirksam","keime bleiben","nicht abget","nicht ausreich","ueberleb","nicht desinfiz","wirkung"]],"Das Mittel wirkt nicht ausreichend, Keime überleben","Einwirkzeit beachten."),
+tx("Welche Farbe hat typischerweise das Tuch für den Toilettenbereich?",[["rot"]],"Rot","Sanitär mit Risiko."),
+tx("Nenne eine häufig berührte Kontaktfläche.",[["klinke","schalter","handlauf","griff","armatur","tuer","gelaender","tastatur","telefon","knopf"]],"z. B. Türklinke, Lichtschalter, Handlauf","Sie werden regelmäßig gereinigt."),
+tx("Warum darf das Tuch aus dem WC nicht im Büro verwendet werden?",[["keim","bakter","verschlepp","hygien","erreger","infekt","krankheit"]],"Keime würden verschleppt","Farbcodierung verhindert das.")]},
+
+{id:"boden",group:"Fachwissen",icon:"🪵",h:30,title:"Bodenbeläge & Oberflächen",sub:"Elastische Beläge, Holz, Naturstein, Fliesen, Teppich und Edelstahl richtig behandeln.",
+lessons:[
+{icon:"🟦",title:"Elastische Bodenbeläge",intro:"PVC, Linoleum und Gummi sind pflegeleicht, aber nicht gleich empfindlich.",
+ pts:[["🧱","PVC","Robust, mit Neutral- bzw. Allzweckreinigern zu pflegen."],["🌾","Linoleum","Naturprodukt aus Leinöl, Holzmehl, Kork und Jute. Stark alkalische Mittel meiden."],["⚫","Gummi (Kautschuk)","Keine ölhaltigen oder lösemittelhaltigen Mittel."],["🛡️","Pflegefilm","Wird nach einer Grundreinigung aufgetragen und schützt den Belag."]]},
+{icon:"🪵",title:"Holz, Parkett & Laminat",intro:"Holz arbeitet. Wasser lässt es quellen.",
+ pts:[["🌫️","Nebelfeucht wischen","Kein stehendes Wasser."],["🧪","pH-neutral","Mittel für Holz verwenden, kein Dampf und keine scharfen Mittel."],["🪑","Möbelgleiter","Filzgleiter schützen vor Kratzern."],["🛢️","Geölte Böden","Brauchen Pflegeöl, versiegelte Böden Pflegemittel."]]},
+{icon:"🪨",title:"Naturstein & Fliesen",intro:"Naturstein besteht oft aus Kalk, und Kalk reagiert mit Säure.",
+ pts:[["⚪","Marmor & Kalkstein","Nie sauer reinigen, sonst wird die Oberfläche matt und zerstört."],["⛰️","Granit","Härter, aber auch hier schonende Reiniger wählen."],["🔲","Feinsteinzeug & Fliesen","Robust, saure Reiniger sind möglich (Zementschleier)."],["🧱","Fugen","Zementfugen sind säureempfindlich, nicht zu stark säuern."]]},
+{icon:"🧶",title:"Teppich, Edelstahl & weitere Flächen",intro:"Spezialflächen brauchen Spezialwissen.",
+ pts:[["🧶","Teppich","Regelmäßig saugen, Flecken sofort abtupfen, nicht reiben. Von außen nach innen."],["🍴","Edelstahl","In Schliffrichtung wischen, keine Stahlwolle, kein Chlor."],["🪞","Kunststoff","Keine Lösemittel und keine Scheuermittel."],["🛋️","Möbel","Mit leicht feuchtem Tuch, Polster nach Pflegeetikett."]]}],
+qs:[
+mc("Darf Marmor mit saurem Reiniger gereinigt werden?","Nein, die Säure löst den Kalk und beschädigt die Oberfläche",["Ja, immer","Ja, aber nur im Winter","Ja, wenn man schnell wischt"],"Marmor und Kalkstein sind säureempfindlich."),
+mc("Wie wird Parkett gereinigt?","Nebelfeucht mit pH-neutralem Mittel",["Mit viel Wasser","Mit Dampfreiniger","Mit Scheuermilch"],"Wasser lässt Holz quellen."),
+mc("Wie behandelst du einen frischen Fleck im Teppich?","Abtupfen, nicht reiben",["Stark reiben","Mit Bürste schrubben","Eintrocknen lassen"],"Reiben drückt den Fleck tiefer ein."),
+mc("In welche Richtung wird Edelstahl gewischt?","In Schliffrichtung",["Quer zum Schliff","Im Kreis","Egal"],"So bleibt das Schliffbild gleichmäßig."),
+mc("Welche Mittel meidest du bei Linoleum?","Stark alkalische Mittel",["Neutralreiniger","Wasser","Pflegefilm"],"Linoleum reagiert empfindlich auf starke Alkalien."),
+mc("Warum darf bei Laminat nicht nass gewischt werden?","Wasser dringt in die Fugen, und der Belag quillt",["Es riecht dann","Es wird zu glatt","Es wird zu hell"],"Nebelfeucht reicht."),
+mc("Warum benutzt man keine Stahlwolle auf Edelstahl?","Sie verkratzt und kann Flugrost verursachen",["Sie ist zu teuer","Sie reinigt zu gut","Sie ist zu leicht"],"Kratzer und Fremdrost."),
+mu("Welche Beläge sind säureempfindlich?",["Marmor","Kalkstein"],["Feinsteinzeug","Edelstahl"],"Kalkhaltige Natursteine reagieren mit Säure."),
+mu("Was gehört zur richtigen Parkettpflege?",["Nebelfeucht wischen","Filzgleiter unter Möbeln"],["Dampfreiniger","Wasserlachen stehen lassen"],"Holz ist feuchtigkeitsempfindlich."),
+tx("Wie behandelst du einen frischen Fleck im Teppich?",[["tupf","abtupf"]],"Abtupfen","Nie reiben."),
+tx("In welcher Richtung wird Edelstahl gewischt?",[["schliff","maserung","richtung"]],"In Schliffrichtung","Das erhält die Optik."),
+tx("Warum kein saurer Reiniger auf Marmor?",[["kalk","angegriff","matt","zersetz","aetz","zerstoer","stumpf","beschaedig"]],"Die Säure greift den Kalk an","Die Oberfläche wird matt und zerstört."),
+tx("Nenne einen Bestandteil von Linoleum.",[["leinoel","holzmehl","kork","jute","harz"]],"z. B. Leinöl, Holzmehl, Kork, Jute","Linoleum ist ein Naturprodukt.")]},
+
+{id:"glas",group:"Fachwissen",icon:"🪟",h:205,title:"Glas- & Fassadenreinigung",sub:"Werkzeuge, Technik, Arbeiten in der Höhe und Fassadenpflege.",
+lessons:[
+{icon:"🧰",title:"Werkzeuge der Glasreinigung",intro:"Mit den richtigen Werkzeugen wird die Scheibe streifenfrei.",
+ pts:[["🧽","Einwascher","Trägt die Reinigungslösung gleichmäßig auf."],["🧊","Abzieher (Fensterwischer)","Zieht das Wasser mit der Gummilippe ab."],["🧻","Fensterleder / Mikrofasertuch","Trocknet Ränder und Kanten."],["📏","Teleskopstange","Reinigung vom Boden aus, ohne Leiter."],["🔪","Glasschaber","Löst festen Schmutz, nur auf Glas verwenden."]]},
+{icon:"🪟",title:"Ablauf & Technik",intro:"Die Reihenfolge entscheidet über das Ergebnis.",
+ pts:[["🖼️","Rahmen zuerst","Rahmen und Fensterbank reinigen, damit kein Schmutz auf die saubere Scheibe läuft."],["🧽","Einwaschen","Scheibe vollständig nass machen und Schmutz lösen."],["〰️","Abziehen","Ohne abzusetzen in Schlangenlinie oder in Bahnen, Gummi nach jeder Bahn abwischen."],["☀️","Nicht in der prallen Sonne","Die Lösung trocknet zu schnell und es entstehen Schlieren."]]},
+{icon:"🏗️",title:"Arbeiten in der Höhe",intro:"Höhenarbeit ist besonders gefährlich und nur mit Unterweisung und Sicherung erlaubt.",
+ pts:[["🪜","Leitern","Nur für kurze Arbeiten, standsicher, mit Prüfung vor Gebrauch."],["🪢","Absturzsicherung","Je nach Verfahren Geländer, Auffanggurt oder Hubarbeitsbühne."],["🚧","Gefahrenbereich","Unten absperren, es kann etwas herunterfallen."],["🌬️","Wetter","Nicht bei Sturm, Gewitter oder Eis arbeiten."],["💧","Reinwasser","Entmineralisiertes Wasser trocknet fleckenfrei, Reinigung per Teleskopstange."]]},
+{icon:"🏙️",title:"Fassade & Sonderfälle",intro:"Fassaden bestehen aus verschiedenen Materialien.",
+ pts:[["⬇️","Von oben nach unten","Auch an der Fassade arbeitest du von oben nach unten."],["🧪","Materialverträglichkeit","Mittel an unauffälliger Stelle testen."],["🐦","Vogelkot","Hygiene beachten, Schutzhandschuhe tragen."],["☀️","Solaranlagen","Nur mit geeigneten Mitteln, keine Kratzer."]]}],
+qs:[
+mc("Was reinigst du an einem Fenster zuerst?","Rahmen und Fensterbank",["Die Scheibe","Den Abzieher","Gar nichts"],"So läuft kein Schmutz auf die saubere Scheibe."),
+mc("Warum reinigt man Glas nicht in der prallen Sonne?","Die Lösung trocknet zu schnell, es entstehen Schlieren",["Man blendet sich","Das Glas bricht","Der Eimer wird heiß"],"Schatten oder bedeckter Himmel sind ideal."),
+mc("Warum nutzt man entmineralisiertes Wasser?","Es trocknet ohne Kalkflecken",["Es riecht besser","Es ist kälter","Es braucht keinen Abzieher"],"Ohne Mineralien bleiben keine Rückstände."),
+mc("Von wo nach wo wird eine Fassade gereinigt?","Von oben nach unten",["Von unten nach oben","Von links nach rechts","Zufällig"],"Ablaufender Schmutz soll nicht auf Sauberes tropfen."),
+mc("Wodurch entstehen oft Schlieren?","Verschmutzte oder verschlissene Gummilippe",["Zu sauberes Glas","Zu viel Glasreiniger","Zu wenig Wasser"],"Gummi regelmäßig abwischen und tauschen."),
+mc("Wie verhältst du dich bei Sturm oder Gewitter?","Keine Arbeiten in der Höhe",["Du arbeitest schneller","Du arbeitest auf dem Dach weiter","Du ziehst nur den Gurt fester"],"Wetter ist ein Abbruchkriterium."),
+mc("Was ist ein Vorteil der Teleskopstange?","Reinigung vom Boden aus, ohne Leiter",["Sie ist günstiger als ein Eimer","Sie braucht kein Wasser","Sie reinigt nur Spiegel"],"Weniger Absturzrisiko."),
+mu("Welche Werkzeuge gehören zur Glasreinigung?",["Einwascher","Abzieher","Fensterleder"],["Scheuerpulver","Stahlwolle"],"Scheuermittel und Stahlwolle zerkratzen Glas."),
+mu("Welche Gefahren gibt es bei Höhenarbeit?",["Absturz","Herabfallende Gegenstände","Wind"],["Schlechter Duft"],"Absperren und sichern."),
+tx("Welches Werkzeug zieht Wasser von der Scheibe?",[["abzieher","wischer","fensterwischer"]],"Abzieher / Fensterwischer","Gummilippe über das Glas."),
+tx("Warum nicht bei direkter Sonne reinigen?",[["schnell","trock","schlier","streif"]],"Es trocknet zu schnell, Schlieren","Schatten bevorzugen."),
+tx("Wie nennt man Wasser ohne Mineralien?",[["osmose","entmineral","reinwasser","vollentsalzt","demineral","ve wasser","destill"]],"Reinwasser / entmineralisiertes Wasser","Trocknet fleckenfrei."),
+tx("Was musst du bei Arbeiten an der Fassade unten absichern?",[["gefahrenbereich","absperr","bereich","sperr","absperrung"]],"Den Gefahrenbereich absperren","Es kann etwas herabfallen.")]},
+
+{id:"maschinen",group:"Fachwissen",icon:"🔧",h:110,title:"Maschinen & Geräte",sub:"Geräteüberblick, Pads und Bürsten, sicheres Arbeiten und Wartung.",
+lessons:[
+{icon:"🔧",title:"Geräteüberblick",intro:"Maschinen sparen Zeit und Kraft, wenn man sie richtig einsetzt.",
+ pts:[["🧹","Staubsauger","Trockensauger mit Filter. Nass-/Trockensauger nur, wenn dafür zugelassen."],["🚜","Scheuersaugmaschine","Scheuert und saugt in einem Arbeitsgang."],["💿","Einscheibenmaschine","Polieren, Schrubben und Grundreinigung mit Pad oder Bürste."],["🛁","Sprühextraktionsgerät","Tiefenreinigung von Teppichen und Polstern."],["💦","Hochdruckreiniger","Außenflächen, nicht für empfindliche Flächen."]]},
+{icon:"⚙️",title:"Pads & Bürsten",intro:"Die Farbe des Pads zeigt, wie aggressiv es arbeitet. Herstellerangaben beachten.",
+ pts:[["⚪","Weiß","Polieren und Pflegen, sehr schonend."],["🔴","Rot","Unterhaltsreinigung und Sprühreinigung."],["🟢","Grün","Schrubben und intensive Reinigung."],["⚫","Schwarz","Abtragen von Beschichtungen, sehr aggressiv."],["🪥","Bürsten","Für strukturierte Böden und Fugen."]]},
+{icon:"🛡️",title:"Sicher arbeiten",intro:"Strom und Wasser sind eine gefährliche Kombination.",
+ pts:[["🔎","Sichtprüfung","Kabel, Stecker und Gehäuse vor jedem Einsatz kontrollieren."],["🔌","Kabelführung","Kabel hinter dir führen, nicht überfahren, nicht am Kabel ziehen."],["🔕","Stecker ziehen","Vor Wartung, Pad- oder Bürstenwechsel immer vom Netz trennen."],["🎓","Einweisung","Maschinen nur nach Einweisung benutzen."]]},
+{icon:"🧯",title:"Pflege & Wartung",intro:"Gepflegte Geräte halten länger und arbeiten besser.",
+ pts:[["🪣","Tanks leeren","Frisch- und Schmutzwassertank leeren und ausspülen."],["🧽","Pads & Bürsten","Reinigen und trocknen."],["🔋","Akku","Nach dem Einsatz laden."],["🚨","Defekte melden","Defekte Geräte sperren und melden. Elektrik nur von Elektrofachkräften prüfen lassen."]]}],
+qs:[
+mc("Welche Maschine scheuert und saugt in einem Arbeitsgang?","Scheuersaugmaschine",["Hochdruckreiniger","Polierbürste","Staubwedel"],"Sie spart Zeit und hinterlässt einen trockenen Boden."),
+mc("Welches Gerät reinigt Teppiche in der Tiefe?","Sprühextraktionsgerät",["Staubsauger","Einscheibenmaschine","Laubbläser"],"Mit Unterdruck wird die Lösung wieder abgesaugt."),
+mc("Welches Pad trägt Beschichtungen ab?","Schwarz",["Weiß","Rot","Blau"],"Schwarze Pads sind aggressiv. Farben können je nach Hersteller abweichen."),
+mc("Wie ziehst du das Kabel richtig?","Hinter dir, nicht überfahren und nie am Kabel ziehen",["Vor der Maschine","Um den Hals","Quer durch den Gang"],"So vermeidest du Stolperfallen und Beschädigungen."),
+mc("Was tust du vor einem Padwechsel?","Den Netzstecker ziehen",["Die Maschine laufen lassen","Wasser nachfüllen","Nichts"],"Maschine vom Netz trennen."),
+mc("Was machst du nach dem Einsatz mit den Tanks?","Entleeren und ausspülen",["Das Wasser stehen lassen","Mit Reiniger füllen","Zudecken"],"Sonst entstehen Geruch und Keime."),
+mc("Du bemerkst ein beschädigtes Kabel. Was tust du?","Gerät nicht benutzen, sperren und melden",["Mit Klebeband flicken","Trotzdem benutzen","Kabel kürzen"],"Elektrische Mängel sind lebensgefährlich."),
+mu("Was prüfst du vor dem Einsatz?",["Kabel und Stecker","Passendes Pad oder passende Bürste","Wasserstand"],["Nichts, Hauptsache schnell"],"Eine kurze Kontrolle verhindert Unfälle."),
+mu("Was gehört zur Pflege nach dem Einsatz?",["Tanks leeren","Pads reinigen","Akku laden"],["Wasser im Tank lassen"],"Gepflegte Maschinen halten länger."),
+tx("Wie heißt die Maschine, die gleichzeitig scheuert und absaugt?",[["scheuersaug"]],"Scheuersaugmaschine","Sie ist die Standardmaschine für große Böden."),
+tx("Was tust du bei einem defekten Kabel?",[["melden","stecker","nicht benutz","sperr","aussonder","vorgesetzt","nicht verwend"]],"Nicht benutzen, sperren und melden","Reparatur nur durch Fachkräfte."),
+tx("Wie heißt das Gerät zur Tiefenreinigung von Teppichen?",[["spruehextrakt","extraktion","extrakteur"]],"Sprühextraktionsgerät","Es spült und saugt den Teppich ab."),
+tx("Wer darf elektrische Reparaturen durchführen?",[["elektrofach","elektriker","fachkraft","fachmann","fachbetrieb"]],"Eine Elektrofachkraft","Nicht der Reinigungsmitarbeiter selbst.")]}
+];
+
+/* ============ ZUSTAND ============ */
+const KEY="adera-academy-v1", PASS=0.6, N_MC=5, N_MU=1, N_TX=2;
+let S=(()=>{try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return {}}})();
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const sp=id=>S[id]||(S[id]={read:[],best:null,attempts:0,seen:{}});
+const sec=id=>SECTIONS.find(s=>s.id===id);
+let T=null, filter="Alle", view={name:"hub"};
+
+const $=s=>document.querySelector(s), app=$("#app");
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const num=n=>(Math.round(n*2)/2).toLocaleString("de-DE");
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const norm=s=>String(s).toLowerCase().replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss").replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();
+
+const overall=()=>SECTIONS.reduce((a,s)=>{const p=sp(s.id);return a+(p.read.filter(Boolean).length/s.lessons.length)*.5+(p.best&&p.best.pct>=PASS*100?.5:0)},0)/SECTIONS.length;
+const secFrac=s=>{const p=sp(s.id);return(p.read.filter(Boolean).length/s.lessons.length)*.5+(p.best&&p.best.pct>=PASS*100?.5:0)};
+
+function setBar(f,label,crumb,back){
+  const pct=Math.round(f*100);
+  $("#fill").style.width=pct+"%"; $("#pb").setAttribute("aria-valuenow",pct);
+  $("#plabel").textContent=label; $("#ppct").textContent=pct+" %";
+  $("#crumb").textContent=crumb||""; $("#back").hidden=!back; $("#back").dataset.go=back||"";
+}
+function go(v){view=v;render();window.scrollTo({top:0})}
+
+/* ============ VIEWS ============ */
+function render(){({hub,sec:secView,lesson,test,result})[view.name]()}
+
+function hub(){
+  const groups=["Alle","Allgemeinwissen","Fachwissen"];
+  const list=SECTIONS.filter(s=>filter==="Alle"||s.group===filter);
+  const done=SECTIONS.filter(s=>{const b=sp(s.id).best;return b&&b.pct>=PASS*100}).length;
+  const o=overall();
+  setBar(o,"Gesamtfortschritt","",null);
+  app.innerHTML=`
+  <section class="hero"><div><h1>Willkommen in der Academy für Gebäudereinigung</h1>
+  <p>Zehn Lernbereiche für die Mitarbeiterschulung. Lies die Lektionen, mach am Ende den Test und wiederhole ihn so oft du willst. Jeder Test enthält neue Fragen.</p></div>
+  <div class="stats"><div class="stat"><b>${done}/${SECTIONS.length}</b><span>Tests bestanden</span></div><div class="stat"><b>${Math.round(o*100)} %</b><span>Gesamt</span></div></div></section>
+  <div class="filters" role="group" aria-label="Filter">${groups.map(g=>`<button class="chip" type="button" data-act="filter" data-v="${g}" aria-pressed="${g===filter}">${g}</button>`).join("")}</div>
+  <div class="grid">${list.map(card).join("")}</div>
+  <p class="reset" id="reset">${view.confirm?`Wirklich alles zurücksetzen? <button type="button" data-act="reset2"><b>Ja, zurücksetzen</b></button> · <button type="button" data-act="noreset">Abbrechen</button>`:`<button type="button" data-act="reset">Lernfortschritt zurücksetzen</button>`}</p>`;
+}
+function card(s){
+  const p=sp(s.id),n=s.lessons.length,r=p.read.filter(Boolean).length,b=p.best,passed=b&&b.pct>=PASS*100;
+  const badge=passed?`<span class="badge ok">Bestanden</span>`:r||b?`<span class="badge go">In Arbeit</span>`:`<span class="badge">Neu</span>`;
+  return `<button class="card" type="button" data-act="open" data-id="${s.id}" style="--h:${s.h}">
+   <div class="card-h"><div class="tile">${s.icon}</div><div><div class="group">${s.group}</div><h3>${s.title}</h3></div></div>
+   <p>${s.sub}</p><div class="mini"><i style="width:${Math.round(secFrac(s)*100)}%"></i></div>
+   <div class="card-f"><span>${n} Lektionen · Test</span>${b?`<span>Bestwert ${Math.round(b.pct)} %</span>`:""} ${badge}</div></button>`;
+}
+
+function secView(){
+  const s=sec(view.id),p=sp(s.id),b=p.best;
+  setBar(secFrac(s),"Fortschritt in diesem Bereich",s.title,"hub");
+  const next=Math.max(0,p.read.findIndex(x=>!x));
+  const allRead=p.read.filter(Boolean).length===s.lessons.length;
+  app.innerHTML=`<div class="panel" style="--h:${s.h}">
+  <div class="sec-head"><div class="tile">${s.icon}</div><div><div class="group">${s.group}</div><h1>${s.title}</h1></div></div>
+  <p>${s.sub}</p>
+  <ul class="steps">${s.lessons.map((l,i)=>`<li><button class="step" type="button" data-act="lesson" data-i="${i}"><div class="tile">${l.icon}</div><span>${l.title}<small>Lektion ${i+1} von ${s.lessons.length}</small></span>${p.read[i]?'<b class="check">✓ gelesen</b>':""}</button></li>`).join("")}
+  <li><button class="step" type="button" data-act="test"><div class="tile" style="--h:48">📝</div><span>Abschlusstest<small>${N_MC+N_MU+N_TX} Fragen, jedes Mal neu gemischt${b?` · Bestwert ${Math.round(b.pct)} % (${p.attempts}× versucht)`:""}</small></span>${b&&b.pct>=PASS*100?'<b class="check">✓ bestanden</b>':""}</button></li></ul>
+  <div class="row"><button class="btn" type="button" data-act="${allRead?"test":"lesson"}" data-i="${next}">${allRead?"Test starten":(p.read.some(Boolean)?"Weiterlernen":"Lernen starten")}</button></div></div>`;
+}
+
+function lesson(){
+  const s=sec(view.id),l=s.lessons[view.i],n=s.lessons.length,p=sp(s.id);
+  p.read[view.i]=true; save();
+  setBar((view.i+1)/(n+1),`Lektion ${view.i+1} von ${n} · danach Test`,s.title,"sec");
+  app.innerHTML=`<article class="panel lesson" style="--h:${s.h}">
+  <div class="sec-head"><div class="tile">${l.icon}</div><h2>${l.title}</h2></div>
+  <p class="intro">${l.intro}</p>
+  <div class="pts">${l.pts.map(x=>`<div class="pt"><div class="tile">${x[0]}</div><div><h3>${x[1]}</h3><p>${x[2]}</p></div></div>`).join("")}</div>
+  ${l.tip?`<div class="tip"><span>💡</span><div><b>${l.tip[0]}</b>${l.tip[1]}</div></div>`:""}
+  <div class="nav"><button class="btn alt" type="button" data-act="${view.i?"lesson":"sec"}" data-i="${view.i-1}">← ${view.i?"Zurück":"Übersicht"}</button>
+  <div class="dots" aria-hidden="true">${s.lessons.map((_,i)=>`<i class="${i===view.i?"on":""}"></i>`).join("")}<i></i></div>
+  <button class="btn" type="button" data-act="${view.i<n-1?"lesson":"test"}" data-i="${view.i+1}">${view.i<n-1?"Weiter →":"Zum Test →"}</button></div></article>`;
+}
+
+/* ---- Test ---- */
+function buildTest(s){
+  const p=sp(s.id), id=(q)=>s.id+":"+s.qs.indexOf(q);
+  const pick=(t,n)=>shuffle(s.qs.filter(q=>q.t===t)).sort((a,b)=>(p.seen[id(a)]||0)-(p.seen[id(b)]||0)).slice(0,n);
+  const qs=shuffle([...pick("mc",N_MC),...pick("mu",N_MU),...pick("tx",N_TX)]).map(q=>{
+    const o={id:id(q),t:q.t,q:q.q,e:q.e};
+    if(q.t==="mc"){o.opts=shuffle([q.right,...q.wrong]);o.correct=[o.opts.indexOf(q.right)];}
+    if(q.t==="mu"){o.opts=shuffle([...q.rights,...q.wrongs]);o.correct=q.rights.map(r=>o.opts.indexOf(r));}
+    if(q.t==="tx"){o.groups=q.groups.map(g=>g.map(norm));o.show=q.show;}
+    return o});
+  qs.forEach(q=>p.seen[q.id]=(p.seen[q.id]||0)+1);
+  return{sec:s.id,qs,ans:qs.map(q=>q.t==="mu"?[]:q.t==="tx"?"":null),i:0};
+}
+function test(){
+  const s=sec(view.id);
+  if(!T||T.sec!==s.id||view.fresh){T=buildTest(s);view.fresh=false}
+  const n=s.lessons.length,q=T.qs[T.i],a=T.ans[T.i],tot=T.qs.length,last=T.i===tot-1;
+  setBar((n+T.i/tot)/(n+1),`Test · Frage ${T.i+1} von ${tot}`,s.title,"sec");
+  const kind=q.t==="mc"?"Eine Antwort":q.t==="mu"?"Mehrere Antworten möglich":"Eigene Antwort";
+  const pts=q.t==="mc"?1:2;
+  let body="";
+  if(q.t==="tx") body=`<textarea id="ans" rows="3" placeholder="Deine Antwort hier eintippen" aria-label="Deine Antwort">${esc(a)}</textarea>`;
+  else body=`<div class="opts">${q.opts.map((o,i)=>{const sel=q.t==="mc"?a===i:a.includes(i);return `<button type="button" class="opt ${q.t==="mu"?"multi":""} ${sel?"sel":""}" data-act="opt" data-i="${i}" aria-pressed="${sel}"><span class="m">✓</span><span>${esc(o)}</span></button>`}).join("")}</div>`;
+  app.innerHTML=`<div class="panel q" style="--h:${s.h}">
+  <div class="q-meta"><span>${kind}</span><span>${pts} ${pts>1?"Punkte":"Punkt"}</span></div>
+  <h2>${esc(q.q)}</h2>${q.t==="tx"?`<p class="hint">Tippe kurz und in eigenen Worten. Rechtschreibung ist nicht entscheidend.</p>`:""}
+  ${body}
+  <div class="nav"><button class="btn alt" type="button" data-act="prevq" ${T.i?"":"disabled"}>← Zurück</button>
+  <button class="btn ${last?"yellow":""}" type="button" data-act="nextq">${last?"Test auswerten ✓":"Weiter →"}</button></div></div>`;
+  if(q.t==="tx")$("#ans").addEventListener("input",e=>{T.ans[T.i]=e.target.value});
+}
+
+function grade(q,a){
+  if(q.t==="mc"){const ok=a===q.correct[0];return{pts:ok?1:0,max:1}}
+  if(q.t==="mu"){const hit=a.filter(i=>q.correct.includes(i)).length,wr=a.length-hit;return{pts:Math.round(Math.max(0,hit-wr)/q.correct.length*2*2)/2,max:2}}
+  const t=" "+norm(a)+" ", tk=t.trim().split(" ");
+  const m=q.groups.filter(g=>g.some(k=>k.length<=2?tk.includes(k):t.includes(k))).length;
+  return{pts:Math.round(m/q.groups.length*2*2)/2,max:2};
+}
+function finish(){
+  const s=sec(T.sec),p=sp(s.id);
+  const rs=T.qs.map((q,i)=>({q,a:T.ans[i],...grade(q,T.ans[i])}));
+  const pts=rs.reduce((x,r)=>x+r.pts,0),max=rs.reduce((x,r)=>x+r.max,0),pct=pts/max*100;
+  p.attempts++; if(!p.best||pct>p.best.pct)p.best={pts,max,pct}; save();
+  view={name:"result",id:s.id,rs,pts,max,pct}; render(); window.scrollTo({top:0});
+}
+function rating(pct){
+  if(pct>=90)return["🏆","Hervorragend","Du beherrschst dieses Thema auf Profi-Niveau."];
+  if(pct>=75)return["🥇","Sehr gut","Starke Leistung. Nur wenige Lücken."];
+  if(pct>=60)return["✅","Bestanden","Gut gemacht. Schau dir die falschen Antworten noch einmal an."];
+  if(pct>=40)return["📘","Noch nicht bestanden","Lies die Lektionen noch einmal und versuche es erneut."];
+  return["🔁","Noch viel zu lernen","Kein Problem. Wiederhole die Lektionen und starte einen neuen Test."];
+}
+function showAns(r){
+  const q=r.q;
+  if(q.t==="mc")return[r.a==null?"keine Antwort":q.opts[r.a],q.opts[q.correct[0]]];
+  if(q.t==="mu")return[r.a.length?r.a.map(i=>q.opts[i]).join(", "):"keine Antwort",q.correct.map(i=>q.opts[i]).join(", ")];
+  return[r.a.trim()||"keine Antwort",q.show];
+}
+function result(){
+  const s=sec(view.id),{rs,pts,max,pct}=view,[ic,label,sub]=rating(pct);
+  setBar(1,"Abschlusstest ausgewertet",s.title,"sec");
+  const R=96,C=2*Math.PI*R,col=pct>=PASS*100?"var(--good)":pct>=40?"var(--accent)":"var(--bad)";
+  app.innerHTML=`<div class="panel result" style="--h:${s.h}">
+  <div class="ring"><svg viewBox="0 0 220 220" aria-hidden="true"><circle class="bg" cx="110" cy="110" r="${R}"/><circle class="fg" id="arc" cx="110" cy="110" r="${R}" stroke="${col}" stroke-dasharray="${C}" stroke-dashoffset="${C}"/></svg>
+  <div class="c"><b>${Math.round(pct)} %</b><span>${num(pts)} von ${num(max)} Punkten</span></div></div>
+  <div class="rating">${ic} ${label}</div><p class="rating-sub">${sub}</p>
+  <div class="scoreline"><span class="badge ${pct>=PASS*100?"ok":"go"}">${pct>=PASS*100?"Test bestanden (ab 60 %)":"Bestehen ab 60 %"}</span><span class="badge">Bestwert ${Math.round(sp(s.id).best.pct)} %</span></div>
+  <div class="row" style="justify-content:center"><button class="btn yellow" type="button" data-act="retry">Neuer Test mit neuen Fragen</button>
+  <button class="btn alt" type="button" data-act="sec">Lektionen wiederholen</button><button class="btn alt" type="button" data-act="hub">Zur Übersicht</button></div>
+  <div class="review"><h3>Deine Antworten</h3>${rs.map((r,i)=>{const st=r.pts===r.max?"ok":r.pts>0?"part":"bad",[y,c]=showAns(r);
+   return `<div class="rv ${st}"><h4><span class="pt-s">${num(r.pts)}/${num(r.max)}</span>${i+1}. ${esc(r.q.q)}</h4>
+   <p class="yours">${st==="ok"?"✓":st==="part"?"◐":"✗"} Deine Antwort: ${esc(y)}</p>${st==="ok"?"":`<p class="right">Richtig: ${esc(c)}</p>`}<p class="why">${esc(r.q.e)}</p></div>`}).join("")}</div></div>`;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{const a=$("#arc");if(a)a.style.strokeDashoffset=C*(1-pct/100)}));
+}
+
+/* ============ EVENTS ============ */
+document.addEventListener("click",e=>{
+  const b=e.target.closest("[data-act],#back"); if(!b)return;
+  const act=b.id==="back"?b.dataset.go:b.dataset.act, i=+b.dataset.i;
+  switch(act){
+    case "hub": T=null; go({name:"hub"});break;
+    case "filter": filter=b.dataset.v;hub();break;
+    case "reset": view.confirm=true;hub();break;
+    case "noreset": view.confirm=false;hub();break;
+    case "reset2": S={};save();T=null;go({name:"hub"});break;
+    case "open": go({name:"sec",id:b.dataset.id});break;
+    case "sec": go({name:"sec",id:view.id});break;
+    case "lesson": go({name:"lesson",id:view.id,i:isNaN(i)?0:Math.max(0,i)});break;
+    case "test": T=null; go({name:"test",id:view.id,fresh:true});break;
+    case "retry": T=null; go({name:"test",id:view.id,fresh:true});break;
+    case "opt":{const q=T.qs[T.i];
+      if(q.t==="mc")T.ans[T.i]=i;
+      else{const a=T.ans[T.i],k=a.indexOf(i);k<0?a.push(i):a.splice(k,1)}
+      test();break}
+    case "prevq": if(T.i>0){T.i--;test()}break;
+    case "nextq": if(T.i<T.qs.length-1){T.i++;test();window.scrollTo({top:0})}else finish();break;
+  }
+});
+render();
+</script>
